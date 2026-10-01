@@ -136,7 +136,8 @@
       {%- liquid
         assign product_name = product.title | escape
         unless product.has_only_default_variant
-          assign product_name = product_name | append: ' (' | append: variant.title | append: ')'
+          assign variant_name = variant.title | escape
+          assign product_name = product_name | append: ' (' | append: variant_name | append: ')'
         endunless
         assign product_strong = '<strong>' | append: product_name | append: '</strong>'
       -%}

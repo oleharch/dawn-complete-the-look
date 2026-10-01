@@ -23,7 +23,7 @@ variant selects for picks with options, and a fallback that never blocks the pur
 
 1. **Intercept.** A `submit` listener on `document` in the capture phase catches the main product form
    before Dawn's own handler. It also catches Enter in the quantity field, not only button clicks, and
-   keeps working after Dawn re-renders the product form on a variant change.
+   keeps working when Dawn replaces the whole product block (combined listings swap the product in place).
 2. **Render for the selected variant.** The section re-renders itself through the
    [Section Rendering API](https://shopify.dev/docs/api/ajax/section-rendering)
    (`?variant=<id>&section_id=<id>`). Images, prices, compare-at prices, the saving and every text come from
@@ -79,7 +79,7 @@ The product itself and sold-out products are skipped automatically.
 | Decision | Instead of | Why |
 |---|---|---|
 | Render in Liquid, refresh through the Section Rendering API | `fetch('/products/<handle>.js')` and building HTML in JS | Money format, currency, Markets, translations and image sizes stay correct. One request instead of one per product |
-| Listen to `submit` in the capture phase | `click` on the submit button | Covers Enter in inputs, survives re-rendered forms, and leaves the form intact for the theme |
+| Listen to `submit` in the capture phase | `click` on the submit button | Covers Enter in inputs, survives a replaced product block, and leaves the form intact for the theme |
 | Let the original submit through for "only this item" | Re-implementing add to cart | Quantity rules, selling plans, gift card recipients, errors and the cart drawer stay the theme's job |
 | One `/cart/add.js` call with `items` | A request per product in a loop | One round trip and one response to check. In our test a missing variant failed the whole request with a 422 and added nothing; the docs do not promise all-or-nothing for every error, so the modal shows the error and the customer can retry |
 | Native `<dialog>` + theme classes | A `div` overlay in Shadow DOM | Accessibility for free; colour schemes, fonts and buttons match the theme |
