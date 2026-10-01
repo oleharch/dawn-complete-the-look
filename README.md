@@ -81,7 +81,7 @@ The product itself and sold-out products are skipped automatically.
 | Render in Liquid, refresh through the Section Rendering API | `fetch('/products/<handle>.js')` and building HTML in JS | Money format, currency, Markets, translations and image sizes stay correct. One request instead of one per product |
 | Listen to `submit` in the capture phase | `click` on the submit button | Covers Enter in inputs, survives re-rendered forms, and leaves the form intact for the theme |
 | Let the original submit through for "only this item" | Re-implementing add to cart | Quantity rules, selling plans, gift card recipients, errors and the cart drawer stay the theme's job |
-| One `/cart/add.js` call with `items` | A request per product in a loop | Atomic: either everything is added or the customer sees one clear error |
+| One `/cart/add.js` call with `items` | A request per product in a loop | One round trip and one response to check. In our test a missing variant failed the whole request with a 422 and added nothing; the docs do not promise all-or-nothing for every error, so the modal shows the error and the customer can retry |
 | Native `<dialog>` + theme classes | A `div` overlay in Shadow DOM | Accessibility for free; colour schemes, fonts and buttons match the theme |
 | A unique element name, `<complete-the-look>` | `<product-modal>` | Dawn already defines `product-modal` for media zoom; reusing the name breaks one of them |
 | Metafield `list.product_reference` | Hard-coded handles | Picks per product, edited by the merchant in the admin |
