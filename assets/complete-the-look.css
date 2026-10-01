@@ -1,0 +1,139 @@
+/*
+ * Complete the look. Uses the theme's colour scheme variables (Dawn: --color-background,
+ * --color-foreground) and typography, so it looks native in any scheme.
+ */
+.ctl {
+  --ctl-gap: 2.4rem;
+  --ctl-radius: var(--popup-corner-radius, 0.8rem);
+  --ctl-border: rgba(var(--color-foreground), 0.12);
+  --ctl-duration: 0.22s;
+
+  box-sizing: border-box;
+  width: min(92rem, calc(100vw - 3.2rem));
+  max-height: calc(100dvh - 3.2rem);
+  margin: auto;
+  padding: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: var(--popup-border-width, 1px) solid var(--ctl-border);
+  border-radius: var(--ctl-radius);
+  background: rgb(var(--color-background));
+  color: rgb(var(--color-foreground));
+  box-shadow: 0 2.4rem 6.4rem rgba(0, 0, 0, 0.25);
+
+  opacity: 0;
+  translate: 0 1.2rem;
+  transition: opacity var(--ctl-duration) ease, translate var(--ctl-duration) ease,
+    overlay var(--ctl-duration) allow-discrete, display var(--ctl-duration) allow-discrete;
+}
+
+.ctl[open] {
+  display: grid;
+  grid-template-columns: minmax(0, 42rem) minmax(0, 1fr);
+  opacity: 1;
+  translate: 0 0;
+}
+
+.ctl[open]:not(:has(.ctl__media)) { grid-template-columns: minmax(0, 1fr); width: min(56rem, calc(100vw - 3.2rem)); }
+
+@starting-style {
+  .ctl[open] { opacity: 0; translate: 0 1.2rem; }
+}
+
+.ctl::backdrop {
+  background: rgba(0, 0, 0, 0);
+  transition: background var(--ctl-duration) ease, overlay var(--ctl-duration) allow-discrete,
+    display var(--ctl-duration) allow-discrete;
+}
+.ctl[open]::backdrop { background: rgba(0, 0, 0, 0.5); }
+@starting-style {
+  .ctl[open]::backdrop { background: rgba(0, 0, 0, 0); }
+}
+
+.ctl__close-form { position: absolute; inset: 1.2rem 1.2rem auto auto; z-index: 1; margin: 0; }
+.ctl__close {
+  display: grid;
+  place-items: center;
+  width: 4.4rem;
+  height: 4.4rem;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(var(--color-background), 0.85);
+  color: rgb(var(--color-foreground));
+  cursor: pointer;
+}
+.ctl__close .icon { width: 1.8rem; height: 1.8rem; }
+.ctl__close:focus-visible { outline: 0.2rem solid rgba(var(--color-foreground), 0.5); outline-offset: 0.2rem; }
+
+.ctl__media { position: relative; min-height: 100%; background: rgba(var(--color-foreground), 0.04); }
+.ctl__media img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+
+.ctl__body { display: flex; flex-direction: column; gap: 1.6rem; padding: 4rem; min-width: 0; }
+.ctl__heading { margin: 0 4.4rem 0 0; }
+.ctl__text, .ctl__savings { margin: 0; font-size: 1.5rem; line-height: 1.5; }
+.ctl__savings { color: rgba(var(--color-foreground), 0.85); }
+
+.ctl__picks { display: grid; gap: 1.2rem; margin: 0.8rem 0 0; padding: 0; list-style: none; }
+
+.ctl-pick {
+  display: grid;
+  grid-template-columns: auto 8.8rem minmax(0, 1fr);
+  align-items: center;
+  gap: 1.4rem;
+  padding: 1.2rem;
+  border: 0.1rem solid var(--ctl-border);
+  border-radius: calc(var(--ctl-radius) * 0.75);
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+.ctl-pick:has(.ctl-pick__check:checked) {
+  border-color: rgba(var(--color-foreground), 0.55);
+  background: rgba(var(--color-foreground), 0.03);
+}
+.ctl-pick:has(.ctl-pick__check:not(:checked)) .ctl-pick__media,
+.ctl-pick:has(.ctl-pick__check:not(:checked)) .ctl-pick__price { opacity: 0.5; }
+
+.ctl-pick__check {
+  width: 2rem;
+  height: 2rem;
+  margin: 0;
+  accent-color: rgb(var(--color-button, var(--color-foreground)));
+  cursor: pointer;
+}
+
+.ctl-pick__media { aspect-ratio: 88 / 100; overflow: hidden; border-radius: 0.4rem; background: rgba(var(--color-foreground), 0.04); }
+.ctl-pick__media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.ctl-pick__info { display: flex; flex-direction: column; gap: 0.4rem; min-width: 0; }
+.ctl-pick__title { font-size: 1.5rem; font-weight: 600; line-height: 1.35; cursor: pointer; }
+.ctl-pick__sku { font-size: 1.2rem; color: rgba(var(--color-foreground), 0.65); }
+.ctl-pick__price { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.8rem; font-size: 1.5rem; }
+.ctl-pick__price s { font-size: 1.3rem; color: rgba(var(--color-foreground), 0.6); }
+.ctl-pick__select { margin-top: 0.4rem; max-width: 22rem; }
+.ctl-pick__select .select__select { height: 3.6rem; font-size: 1.3rem; }
+
+.ctl__error { margin: 0; padding: 1rem 1.2rem; border-radius: 0.4rem; background: rgba(var(--color-foreground), 0.06); font-size: 1.4rem; }
+.ctl__actions { display: grid; gap: 1rem; margin-top: 0.8rem; }
+
+@media screen and (max-width: 749px) {
+  .ctl {
+    width: 100vw;
+    max-width: 100vw;
+    max-height: calc(100dvh - 4rem);
+    margin: auto 0 0;
+    border-width: 0;
+    border-radius: var(--ctl-radius) var(--ctl-radius) 0 0;
+    translate: 0 100%;
+  }
+  .ctl[open] { grid-template-columns: minmax(0, 1fr); translate: 0 0; }
+  @starting-style {
+    .ctl[open] { translate: 0 100%; }
+  }
+  .ctl__media { display: none; }
+  .ctl__body { padding: 2.4rem 1.6rem calc(2rem + env(safe-area-inset-bottom)); }
+  .ctl-pick { grid-template-columns: auto 6.4rem minmax(0, 1fr); gap: 1.2rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ctl, .ctl::backdrop { --ctl-duration: 0.01s; }
+}

@@ -1,0 +1,286 @@
+{%- comment -%}
+  Complete the look
+  Intercepts Add to cart on the product page and offers products that go with it.
+  "Add selected" adds the product and the chosen picks in one Ajax request;
+  "Add only this item" hands the submit back to the theme, so its own cart flow runs unchanged.
+
+  Files: sections/complete-the-look.liquid, assets/complete-the-look.js, assets/complete-the-look.css
+  Picks: product metafield custom.complete_the_look (list of products), or the list in this section.
+
+  Docs:
+  - Section Rendering API: https://shopify.dev/docs/api/ajax/section-rendering
+  - Cart API /cart/add.js:  https://shopify.dev/docs/api/ajax/reference/cart#post-locale-cart-add-js
+  - Metafields in Liquid:   https://shopify.dev/docs/api/liquid/objects/metafield
+{%- endcomment -%}
+
+{%- liquid
+  assign variant = product.selected_or_first_available_variant
+  assign limit = section.settings.limit
+
+  assign picks = blank
+  if section.settings.source == 'metafield'
+    assign picks = product.metafields.custom.complete_the_look.value
+  endif
+  if picks == blank
+    assign picks = section.settings.product_list
+  endif
+
+  assign main_media = variant.featured_media | default: product.featured_media
+  assign picks_count = 0
+  assign savings = 0
+-%}
+
+{%- capture picks_html -%}
+  {%- for pick in picks -%}
+    {%- if picks_count >= limit -%}{%- break -%}{%- endif -%}
+    {%- if pick.id == product.id or pick.available == false -%}{%- continue -%}{%- endif -%}
+    {%- liquid
+      assign pick_variant = pick.selected_or_first_available_variant
+      assign picks_count = picks_count | plus: 1
+      if pick_variant.compare_at_price > pick_variant.price
+        assign savings = pick_variant.compare_at_price | minus: pick_variant.price | plus: savings
+      endif
+      assign check_id = 'CompleteTheLook-' | append: section.id | append: '-' | append: pick.id
+    -%}
+    <li class="ctl-pick" data-ctl-pick>
+      <input
+        class="ctl-pick__check"
+        type="checkbox"
+        id="{{ check_id }}"
+        checked
+        data-ctl-pick-check
+      >
+      <div class="ctl-pick__media">
+        {%- if pick.featured_media -%}
+          {{
+            pick.featured_media.preview_image
+            | image_url: width: 240
+            | image_tag: widths: '120, 240', sizes: '120px', loading: 'lazy', alt: pick.featured_media.alt
+          }}
+        {%- endif -%}
+      </div>
+      <div class="ctl-pick__info">
+        <label class="ctl-pick__title" for="{{ check_id }}">{{ pick.title | escape }}</label>
+        {%- if section.settings.show_sku and pick_variant.sku != blank -%}
+          <span class="ctl-pick__sku">SKU: <span data-ctl-sku>{{ pick_variant.sku | escape }}</span></span>
+        {%- endif -%}
+        <span class="ctl-pick__price" data-ctl-price>
+          <span>{{ pick_variant.price | money }}</span>
+          {%- if pick_variant.compare_at_price > pick_variant.price -%}
+            <s>{{ pick_variant.compare_at_price | money }}</s>
+          {%- endif -%}
+        </span>
+        {%- if pick.has_only_default_variant -%}
+          <input type="hidden" value="{{ pick_variant.id }}" data-ctl-variant>
+        {%- else -%}
+          <div class="select ctl-pick__select">
+            <select class="select__select" aria-label="{{ pick.title | escape }}" data-ctl-variant>
+              {%- for v in pick.variants -%}
+                <option
+                  value="{{ v.id }}"
+                  {% if v.id == pick_variant.id %}selected{% endif %}
+                  {% unless v.available %}disabled{% endunless %}
+                  data-price="{{ v.price | money | escape }}"
+                  data-compare-at-price="{% if v.compare_at_price > v.price %}{{ v.compare_at_price | money | escape }}{% endif %}"
+                  data-sku="{{ v.sku | escape }}"
+                >
+                  {{- v.title | escape -}}
+                </option>
+              {%- endfor -%}
+            </select>
+            {{- 'icon-caret.svg' | inline_asset_content -}}
+          </div>
+        {%- endif -%}
+      </div>
+    </li>
+  {%- endfor -%}
+{%- endcapture -%}
+
+{{ 'complete-the-look.css' | asset_url | stylesheet_tag }}
+<script src="{{ 'complete-the-look.js' | asset_url }}" defer="defer"></script>
+
+<complete-the-look
+  data-section-id="{{ section.id }}"
+  data-product-id="{{ product.id }}"
+  data-enabled="{{ section.settings.enabled }}"
+  data-picks="{{ picks_count }}"
+  data-once-per-session="{{ section.settings.once_per_session }}"
+  data-cart-add-url="{{ routes.cart_add_url }}"
+  data-cart-url="{{ routes.cart_url }}"
+  data-design-mode="{{ request.design_mode }}"
+>
+  <dialog
+    class="ctl color-{{ section.settings.color_scheme }} gradient"
+    aria-labelledby="CompleteTheLookHeading-{{ section.id }}"
+    closedby="any"
+  >
+    <form method="dialog" class="ctl__close-form">
+      <button class="ctl__close" aria-label="{{ section.settings.close_label | escape }}">
+        {{- 'icon-close.svg' | inline_asset_content -}}
+      </button>
+    </form>
+
+    {%- if section.settings.show_image and main_media -%}
+      <div class="ctl__media">
+        {{
+          main_media.preview_image
+          | image_url: width: 900
+          | image_tag: widths: '450, 675, 900', sizes: '(min-width: 750px) 420px, 100vw', loading: 'lazy', alt: main_media.alt
+        }}
+      </div>
+    {%- endif -%}
+
+    <div class="ctl__body">
+      <h2 class="ctl__heading h2" id="CompleteTheLookHeading-{{ section.id }}">{{ section.settings.heading | escape }}</h2>
+
+      {%- liquid
+        assign product_name = product.title | escape
+        unless product.has_only_default_variant
+          assign product_name = product_name | append: ' (' | append: variant.title | append: ')'
+        endunless
+        assign product_strong = '<strong>' | append: product_name | append: '</strong>'
+      -%}
+      <p class="ctl__text">{{ section.settings.text | escape | replace: '[product]', product_strong }}</p>
+
+      {%- if savings > 0 -%}
+        {%- liquid
+          assign savings_money = savings | money
+          assign savings_strong = '<strong>' | append: savings_money | append: '</strong>'
+        -%}
+        <p class="ctl__savings">{{ section.settings.savings_text | escape | replace: '[amount]', savings_strong }}</p>
+      {%- endif -%}
+
+      <ul class="ctl__picks" role="list" data-ctl-picks>
+        {{- picks_html -}}
+      </ul>
+
+      <p class="ctl__error" role="alert" data-ctl-error hidden></p>
+
+      <div class="ctl__actions">
+        <button type="button" class="button button--full-width" data-ctl-add-selected>
+          {{- section.settings.add_label | escape -}}
+        </button>
+        <button type="button" class="button button--secondary button--full-width" data-ctl-add-main>
+          {{- section.settings.skip_label | escape -}}
+        </button>
+      </div>
+    </div>
+  </dialog>
+</complete-the-look>
+
+{% schema %}
+{
+  "name": "Complete the look",
+  "tag": "section",
+  "class": "section-complete-the-look",
+  "limit": 1,
+  "enabled_on": {
+    "templates": ["product"]
+  },
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "enabled",
+      "label": "Open on Add to cart",
+      "default": true
+    },
+    {
+      "type": "select",
+      "id": "source",
+      "label": "Products to offer",
+      "options": [
+        { "value": "metafield", "label": "Product metafield, then the list below" },
+        { "value": "list", "label": "Only the list below" }
+      ],
+      "default": "metafield",
+      "info": "Metafield: custom.complete_the_look, type list of products. Set it per product to offer matching items."
+    },
+    {
+      "type": "product_list",
+      "id": "product_list",
+      "label": "Products",
+      "limit": 8
+    },
+    {
+      "type": "range",
+      "id": "limit",
+      "label": "Products to show",
+      "min": 1,
+      "max": 4,
+      "step": 1,
+      "default": 3
+    },
+    {
+      "type": "checkbox",
+      "id": "once_per_session",
+      "label": "Open once per session",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "show_image",
+      "label": "Show product image",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_sku",
+      "label": "Show SKU",
+      "default": false
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "Color scheme",
+      "default": "scheme-1"
+    },
+    {
+      "type": "header",
+      "content": "Text"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "Complete your look"
+    },
+    {
+      "type": "text",
+      "id": "text",
+      "label": "Text",
+      "info": "[product] is replaced with the product name.",
+      "default": "You are adding [product] to your cart."
+    },
+    {
+      "type": "text",
+      "id": "savings_text",
+      "label": "Savings text",
+      "info": "Shown when the picks are on sale. [amount] is the total saving.",
+      "default": "Add them too and save up to [amount]."
+    },
+    {
+      "type": "text",
+      "id": "add_label",
+      "label": "Add selected button",
+      "default": "Add selected to cart"
+    },
+    {
+      "type": "text",
+      "id": "skip_label",
+      "label": "Add only this item button",
+      "default": "Add only this item"
+    },
+    {
+      "type": "text",
+      "id": "close_label",
+      "label": "Close button (screen readers)",
+      "default": "Close"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Complete the look"
+    }
+  ]
+}
+{% endschema %}
